@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>李浩男</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <link href="/favicon.ico" rel="icon" type="image/x-ico">
+  <link rel="stylesheet" href="/css/app.css">
+  <!-- <link rel='stylesheet' href='http://fonts.useso.com/css?family=Source+Code+Pro'> -->
+</head>
+
+<body>
+  <nav class="app-nav">
+  
+    
+      <a href="/.">home</a>
+    
+  
+    
+      <a href="/archives">archive</a>
+    
+  
+    
+      <a href="/about">about</a>
+    
+  
+    
+      <a href="/atom.xml">rss</a>
+    
+  
+</nav>
+
+  <main class="post">
+  <article>
+  <h1 class="article-title">
+    <a href="/2016/08/20/HTMLCSS高性能——HTML篇/"></a>
+  </h1>
+
+  <section class="article-meta">
+    <p class="article-date">August 20 2016</p>
+  </section>
+
+  <section class="article-entry">
+    <hr>
+<h2 id="HTML-CSS-高性能——HTML篇"><a href="#HTML-CSS-高性能——HTML篇" class="headerlink" title="HTML/CSS 高性能——HTML篇"></a>HTML/CSS 高性能——HTML篇</h2><p>标签： html css 性能 重构</p>
+<hr>
+<p><a href="http://www.alloyteam.com/2015/05/wang-ye-xing-neng-zhi-html-css-javascript/#prettyPhoto" target="_blank" rel="external">参考自腾讯全端 AlloyTeam 团队 Blog</a></p>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><h2 id="HTML篇"><a href="#HTML篇" class="headerlink" title="HTML篇"></a>HTML篇</h2><p>我们大多数开发者把焦点集中于 JavaScript、图片文件的压缩合并、服务器配置，以及CSS。却忽视了我们前端最最最核心的HTML部分。</p>
+<p>很多项目的HTML已经变得臃肿不堪，上千行代码简直再正常不过了。让我们来尽最大努力，让我们对我们的html进行优化。</p>
+<p>HTML、css、javascript可以算是前端必须掌握的东西了，但是我们的浏览器是怎样解析这些东西的呢 我们如何处理HTML css javascript这些东西来让我们的网页更加合理。</p>
+<p>###一个简单的页面<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">//这是一个最简单的页面</div><div class="line">&lt;!DOCTYPE html&gt;</div><div class="line">&lt;html&gt;</div><div class="line">  &lt;head&gt;</div><div class="line">    &lt;title&gt;test&lt;/title&gt;</div><div class="line">  &lt;/head&gt;</div><div class="line">  &lt;body&gt;</div><div class="line">    &lt;img src=&quot;download-button.png&quot;&gt;</div><div class="line">  &lt;/body&gt;</div><div class="line">&lt;/html&gt;</div></pre></td></tr></table></figure></p>
+<p><img src="http://cdn.alloyteam.com/wp-content/uploads/2015/04/11.png" alt="一个简单的页面"></p>
+<p>1.图中蓝色透明条标识浏览器从发起请求到接收到服务器返回第一个字节的时间，时间还是挺长的，而蓝色实体条则为真正的html页面下载的时间 是很短的。</p>
+<p>2.图中红框内的这部分时间则表示浏览器从下载完成html之后开始构建dom，当发现一个image标签时所花费的时间，由此可见dom是顺序执行的，当发现image时便立即发起请求，而紫色透明条则是image发起请求时在网络传输时所消耗的时间，紫色实条则是下载图片用的时间。</p>
+<p>3.图中timeline蓝色竖线所处的时间为domComplete时间，红色竖线为dom的onload时间，由此可见两种事件的差异。而浏览器构建dom树所花费的时间可以算出即domComplete时间 减去 html下载完成后的时间大概80ms。</p>
+<h3 id="含有CSS的页面"><a href="#含有CSS的页面" class="headerlink" title="含有CSS的页面"></a>含有CSS的页面</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">&lt;!DOCTYPE html&gt;</div><div class="line">&lt;html&gt;</div><div class="line">  &lt;head&gt;</div><div class="line">    &lt;title&gt;test&lt;/title&gt;</div><div class="line">    &lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;stylesheet.css&quot; media=&quot;screen&quot;&gt;</div><div class="line">  &lt;/head&gt;</div><div class="line">  &lt;body&gt;</div><div class="line">    &lt;img src=&quot;download-button.png&quot;&gt;</div><div class="line">  &lt;/body&gt;</div><div class="line">&lt;/html&gt;</div></pre></td></tr></table></figure>
+<p><img src="http://cdn.alloyteam.com/wp-content/uploads/2015/04/2.png" alt="含有CSS的页面"><br>在添加了外部引入css之后，并没有发现什么异常，但是有一点指的注意，也就是红色竖线和蓝色竖线挨得更进了，这表明domComplete时间必须等待css解析完成，也就是构建dom树必须等待css解析完成，这也就解释了</p>
+<p>###含有javascript和css的页面<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">&lt;!DOCTYPE html&gt;</div><div class="line">&lt;html&gt;</div><div class="line">  &lt;head&gt;</div><div class="line">    &lt;title&gt;test&lt;/title&gt;</div><div class="line">      &lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;stylesheet.css&quot; media=&quot;screen&quot;&gt;</div><div class="line">  &lt;/head&gt;</div><div class="line">  &lt;body&gt;</div><div class="line">    &lt;img src=&quot;download-button.png&quot;&gt;</div><div class="line">  &lt;script type=&quot;text/javascript&quot; src=&quot;H5FullscreenPage.js&quot;&gt;&lt;/script&gt;</div><div class="line">  &lt;/body&gt;</div><div class="line">&lt;/html&gt;</div></pre></td></tr></table></figure></p>
+<p><img src="http://cdn.alloyteam.com/wp-content/uploads/2015/04/4.png" alt="含有javascript和css的页面"></p>
+<p>1.图上显示在引入外部的js文件之后domComplete时间又被延后了，结合上面的renderTree，由于javascript代码可能会更改css属性或者是dom结构，所以在形成renderTree之前必须等待javascript解析完成才能接着构建renderTree。</p>
+<p>2.将javascript放在head内和body底部的区别也在于此，放在head里面，由于浏览器发现head里面有javascript标签就会暂时停止其他渲染行为，等待javascript下载并执行完成才能接着往下渲染，而这个时候由于在head里面这个时候页面是白的，如果将javascript放在页面底部，renderTree已经完成大部分，所以此时页面有内容呈现，即使遇到javascript阻塞渲染，也不会有白屏出现。</p>
+<hr>
+<p>如果是内嵌<br><img src="http://cdn.alloyteam.com/wp-content/uploads/2015/04/51.png" alt="内嵌的情况"></p>
+<p>图上可以看到，由于内嵌了javascript，页面上减少了一个请求，导致html文档变大，消耗时间增多，但是domComplete时间提升的并不多。</p>
+<p>###使用async的javascript<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div></pre></td><td class="code"><pre><div class="line">&lt;!DOCTYPE html&gt;</div><div class="line">&lt;html&gt;</div><div class="line">  &lt;head&gt;</div><div class="line">    &lt;title&gt;test&lt;/title&gt;</div><div class="line">      &lt;link rel=&quot;stylesheet&quot; href=&quot;stylesheet.css&quot;&gt;</div><div class="line">  &lt;/head&gt;</div><div class="line">  &lt;body&gt;</div><div class="line">    &lt;img src=&quot;download-button.png&quot;&gt;</div><div class="line">      &lt;script async src=&quot;H5FullscreenPage.js&quot;&gt;&lt;/script &gt;</div><div class="line">  &lt;/body&gt;</div><div class="line">&lt;/html&gt;</div></pre></td></tr></table></figure></p>
+<p><img src="http://cdn.alloyteam.com/wp-content/uploads/2015/05/6.png" alt="使用async的javascript"></p>
+<p>可以看到domComplete时间被大大提前 javascript也没有阻塞css和body里面img元素的并行下载。<br>使用async标识的script，浏览器将异步执行这中script不会阻塞正常的dom渲染，这是html5所支持的属性，另外defer也可以达到这种效果。</p>
+<ul>
+<li><p>async 表示“不用马上执行它”。更具体地它表示：我不介意你在整个网页加载完成之后执行这个脚本，把它放在其他脚本执行之后。这对于统计分析脚本来说非常有用，因为页面上没有其他的代码需要依赖于统计脚本执行。定义一个页面需要的变量或函数在 async 的代码中是不行的，因为你没有方法知道什么时候 async 代码将会被实际执行。</p>
+</li>
+<li><p>defer 表示“等待页面解析完成之后执行”。它大致等价于将你的脚本绑定到 DOMContentedLoaded 事件，或者使用 jQuery.ready。当这个代码被执行，DOM 中的一切元素都可用。不同于 async，所有加了 defer 的脚本将会按照它们出现在 HTML 页面中的顺序执行，它只是推迟到 HTML 页面解析完毕后开始执行。</p>
+</li>
+</ul>
+<p><strong>对浏览器解析HTML小小总结</strong></p>
+<p> 当浏览器从服务器接收到了HTML文档，并把HTML在内存中转换成DOM树，在转换的过程中如果发现某个节点(node)上引用了CSS或者 IMAGE，就会再发1个request去请求CSS或image,然后继续执行下面的转换，而不需要等待request的返回，当request返回 后，只需要把返回的内容放入到DOM树中对应的位置就OK。但当引用了JS的时候，浏览器发送1个js request就会一直等待该request的返回。因为浏览器需要1个稳定的DOM树结构，而JS中很有可能有代码直接改变了DOM树结构，浏览器为了防止出现JS修改DOM树，需要重新构建DOM树的情况，所以 就会阻塞其他的下载和呈现.</p>
+<p>##图片图标高分辨率适配</p>
+<ul>
+<li>上传高分辨率适配（retina-ready）的favicon（在你浏览器tab页上的方块图标）。大多数的网站都是使用16x16像素的favicon，然而在高分辨率的屏幕上，他们就模糊了。你可以在X-Icon Editor上生成一个64x64像素的favicon。</li>
+</ul>
+<p>##避免空链接属性<br>空的链接属性是指img、link、script、ifrrame（这个东西也避免使用会阻塞dom加载）元素的src或href属性被设置了，但是属性却为空。如<code>&lt;img src=&quot;&quot;&gt;</code>，我们创建了一个图片，并且暂时设置图片的地址为空，希望在未来动态的去修改它。但是即使图片的地址为空，浏览器依旧会以默认的规则去请求空地址：</p>
+<p>Internet Explorer 8及以下版本浏览器只在img类型元素上出现问题，IE会把img的空地址解析为当前页面地址的目录地址。例如：如果当前页面地址为<a href="http://example.com/dir/page.html，IE会把空地址解析为http://example.com/dir/地址并请求。" target="_blank" rel="external">http://example.com/dir/page.html，IE会把空地址解析为http://example.com/dir/地址并请求。</a><br>早些版本的Webkit内核浏览器 与Firefox 会把空地址解析为当前页面的地址。如果页面内有多个空链接属性元素，当前页面的服务器则会被请求多次，增加服务器的负载。相较桌面浏览器对内核的更新升级较积极，这个问题在ios与android系统的移动浏览器上问题可能较严重。<br>幸运的是所有主流浏览器面对iframe的src属性为空时，会把空地址解析为about:blank地址，而不会向服务器发出额外的请求。</p>
+<p>##避免节点深层级嵌套</p>
+<p>深层级嵌套的节点在初始化构建时往往需要更多的内存占用，并且在遍历节点时也会更慢些，这与浏览器构建DOM文档的机制有关。通过浏览器HTML解析器的解析，浏览器会把整个HTML文档的结构存储为DOM树结构。当文档节点的嵌套层次越深，构建的DOM树层次也会越深</p>
+<p>###解决的方法：精简html代码</p>
+<p>1、删除多余容器，比较典型的是<div>和<span>，这是两个没有任何语义，常被滥用的标签。</span></div></p>
+<p>2、装饰性元素使用css实现。如背景、伪元素等。</p>
+<p>3、禁止使用table布局，除非他真的是一个表格。</p>
+<p>##使用新标签和新属性。</p>
+<p>新标签：</p>
+<p>语义化标签：<code>&lt;header&gt;</code>、<code>&lt;nav&gt;</code>等</p>
+<p>功能性标签：<code>&lt;svg&gt;</code>、<code>&lt;canvas&gt;</code>、<code>&lt;video&gt;</code>等</p>
+<p>新的输入控件类型：tel、search、email等</p>
+<p>新属性：</p>
+<p><code>&lt;script&gt;</code>的async属性</p>
+<p><code>&lt;base&gt;</code>的target属性</p>
+<p><code>&lt;input&gt;</code>和<code>&lt;textarea&gt;</code>里面的placeholder、required、autofocus属性</p>
+<p>标签自定义属性data-*，用于保存自定义数据，同时添加对应API：dataset</p>
+<p> <a href="https://proyang.gitbooks.io/codeguide/content/chapter2/html/%E6%A0%87%E7%AD%BE.html" target="_blank" rel="external">具体查看勤奋蜂前端规范中的具体罗列</a></p>
+<p>##显式指定文档字符集</p>
+<p>HTML页面开始时指定字符集，有助于浏览器可以立即开始解析HTML代码。HTML文档通常被解析为一序列的带字符集编码信息的字符串通过internet传送。字符集编码在HTTP响应头中，或者HTML标记中指定。浏览器根据获得的字符集，把编码解析为可以显示在屏幕上的字符。如果浏览器不能获知页面的编码字符集，一般都会在执行脚本和渲染页面前，把字节流缓存，然后再搜索可进行解析的字符集，或以默认的字符集来解析页面代码，这会导致消耗不必要的时间。为了避免浏览器把时间花费在搜寻合适的字符集来进行解码，所以最好在文档中总是显式的指定页面字符集。</p>
+<p>##显式设置图片的宽高</p>
+<p>当浏览器加载页面的HTML代码时，有时候需要在图片下载完成前就对页面布局进行定位。如果HTML里的图片没有指定尺寸（宽和高），或者代码描述的尺寸与实际图片的尺寸不符时，浏览器则要在图片下载完成后再“回溯”该图片并重新显示，这会消耗额外时间。所以，最好为页面里的每一张图片都指定尺寸。</p>
+<p><code>&lt;img src=&quot;hello.png&quot; width=&quot;400&quot; height=&quot;300&quot;&gt;</code></p>
+<p>##结构化HTML，调整加载顺序<br>请首先加载网页的主要内容。结构化网页，以便服务器发出的初始响应能发送必要数据，从而迅速呈现网页的关键部分并暂缓呈现其余部分。这可能意味着，您必须将CSS拆分为两个部分：负责调整内容ATF部分的格式的内嵌部分，以及可暂缓呈现的部分。</p>
+<p>参考以下示例，了解有关如何结构化网站以提高加载速度：</p>
+<p>如果您的HTML先加载第三方小部件，再加载主要内容，请将该加载顺序更改为先加载主要内容。<br>如果您的网站采用的是两列布局（即导航边栏加文章），而HTML先加载边栏，再加载文章，请考虑首先加载文章。</p>
+
+  </section>
+</article>
+
+  <div class="sharing grid">
+  <section class="profile grid-item grid">
+    <img class="avatar" src="http://i1.buimg.com/567571/c68375a45fbac976.png" alt="avatar" />
+    <div class="grid-item">
+      <p class="title"> 李浩男 </p>
+      <p class="subtitle"> 这一年注定在我生命中不朽，即使他还不曾来临，但我依旧触摸得到那种炽热。 </p>
+    <div>
+  </section>
+
+  
+</div>
+
+
+  
+</main>
+
+</body>
+</html>
