@@ -42,13 +42,11 @@
 
   <section class="article-entry">
     <hr>
-<h2 id="HTMLCSS"><a href="#HTMLCSS" class="headerlink" title="HTMLCSS"></a>HTMLCSS</h2><p>标签： html css 性能 重构</p>
+<h2 id="title：HTML-CSS-高性能——HTML篇"><a href="#title：HTML-CSS-高性能——HTML篇" class="headerlink" title="title：HTML/CSS 高性能——HTML篇"></a>title：HTML/CSS 高性能——HTML篇</h2><p>标签： html css 性能 重构</p>
 <hr>
 <p><a href="http://www.alloyteam.com/2015/05/wang-ye-xing-neng-zhi-html-css-javascript/#prettyPhoto" target="_blank" rel="external">参考自腾讯全端 AlloyTeam 团队 Blog</a></p>
-<p>##前言</p>
-<p>经过了几天对页面重构的学习了解，发现过去对性能优化代码可维护上的理解太浅薄，一味的追求着命名的统一，属性顺序的调整，调整缩进，做了那么多缺对项目没有一点点提升。所以特地抽出一段时间来对HTML/CSS高性能进行学习，为我的重构工作，打下基础。</p>
-<p>##HTML篇</p>
-<p>我们大多数开发者把焦点集中于 JavaScript、图片文件的压缩合并、服务器配置，以及CSS。却忽视了我们前端最最最核心的HTML部分。</p>
+<h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>经过了几天对页面重构的学习了解，发现过去对性能优化代码可维护上的理解太浅薄，一味的追求着命名的统一，属性顺序的调整，调整缩进，做了那么多缺对项目没有一点点提升。所以特地抽出一段时间来对HTML/CSS高性能进行学习，为我的重构工作，打下基础。</p>
+<h2 id="HTML篇"><a href="#HTML篇" class="headerlink" title="HTML篇"></a>HTML篇</h2><p>我们大多数开发者把焦点集中于 JavaScript、图片文件的压缩合并、服务器配置，以及CSS。却忽视了我们前端最最最核心的HTML部分。</p>
 <p>很多项目的HTML已经变得臃肿不堪，上千行代码简直再正常不过了。让我们来尽最大努力，让我们对我们的html进行优化。</p>
 <p>HTML、css、javascript可以算是前端必须掌握的东西了，但是我们的浏览器是怎样解析这些东西的呢 我们如何处理HTML css javascript这些东西来让我们的网页更加合理。</p>
 <p>###一个简单的页面<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line">//这是一个最简单的页面</div><div class="line">&lt;!DOCTYPE html&gt;</div><div class="line">&lt;html&gt;</div><div class="line">  &lt;head&gt;</div><div class="line">    &lt;title&gt;test&lt;/title&gt;</div><div class="line">  &lt;/head&gt;</div><div class="line">  &lt;body&gt;</div><div class="line">    &lt;img src=&quot;download-button.png&quot;&gt;</div><div class="line">  &lt;/body&gt;</div><div class="line">&lt;/html&gt;</div></pre></td></tr></table></figure></p>
