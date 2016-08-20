@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>李浩男</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/app.css">
+  <!-- <link rel='stylesheet' href='http://fonts.useso.com/css?family=Source+Code+Pro'> -->
+</head>
+
+<body>
+  <nav class="app-nav">
+  
+    
+      <a href="/.">home</a>
+    
+  
+    
+      <a href="/archives">archive</a>
+    
+  
+    
+      <a href="/about">about</a>
+    
+  
+    
+      <a href="/atom.xml">rss</a>
+    
+  
+</nav>
+
+  <main class="post">
+  <article>
+  <h1 class="article-title">
+    <a href="/2016/08/20/编写高性能的CSS代码/"></a>
+  </h1>
+
+  <section class="article-meta">
+    <p class="article-date">八月 20 2016</p>
+  </section>
+
+  <section class="article-entry">
+    <h1 id="编写高性能的CSS代码"><a href="#编写高性能的CSS代码" class="headerlink" title="编写高性能的CSS代码"></a>编写高性能的CSS代码</h1><p>标签（空格分隔）： CSS 性能优化</p>
+<hr>
+<blockquote>
+<p>本文主要参考<a href="https://developer.mozilla.org/zh-CN/docs/Web/Guide/CSS/Writing_efficient_CSS" target="_blank" rel="external">MDN|编写高效的CSS</a>、博文<a href="http://www.reqianduan.com/2595.html" target="_blank" rel="external">编写高性能高质量的CSS代码</a>、《高性能网站建设指南》、<a href="https://developers.google.com/web/fundamentals/performance/" target="_blank" rel="external">谷歌|优化性能</a>总结而出。</p>
+</blockquote>
+<p>性能优化是一门做减法的艺术。我们首要要尽力简化页面渲染过程，然后要使渲染过程的每一步都尽量高效。</p>
+<h2 id="1-CSS选择器"><a href="#1-CSS选择器" class="headerlink" title="1.CSS选择器"></a>1.CSS选择器</h2><p>CSS选择器具有高效的继承性，引用Steve Souders的话， CSS选择器效率从高到低的排序如下：</p>
+<ul>
+<li>ID选择器 比如#header</li>
+<li>类选择器 比如.promo</li>
+<li>元素选择器 比如 div</li>
+<li>兄弟选择器 比如 h2 + p</li>
+<li>子选择器 比如 li &gt; ul</li>
+<li>后代选择器 比如 ul a 7. 通用选择器 比如 *</li>
+<li>属性选择器 比如 type = “text”</li>
+<li>伪类/伪元素选择器 比如 a:hover<br><em>以上引用自<a href="http://stevesouders.com/" target="_blank" rel="external">Steve Souders</a>的Even Faster网站</em></li>
+</ul>
+<p>纵使ID选择器很快、高效，但是它也仅仅如此。从Steve Souders的CSS Test我们可以看出ID选择器和类选择器在速度上的差异很小很小。</p>
+<h3 id="1-1组合选择器"><a href="#1-1组合选择器" class="headerlink" title="1.1组合选择器"></a>1.1组合选择器</h3><p>你可以有一个标准的选择器比如#nav，来选择任何在此元素下的后代元素。此刻，我们读这些是从左到右的方式。我们是先找到#nav，然后从它的里面找其他元素。但是浏览器解析这些不是这样的：浏览器解析选择器是从右到左的方式。</p>
+<p><em>如果想要知道更多浏览器这样解析的原因，请看<a href="http://stackoverflow.com/questions/5797014/why-do-browsers-match-CSS-selectors-from-right-to-left" target="_blank" rel="external">Stack Overflow</a>上的讨论</em></p>
+<h3 id="1-2关键选择器"><a href="#1-2关键选择器" class="headerlink" title="1.2关键选择器"></a>1.2关键选择器</h3><p>渲染样式时重要的是选择器的最后面的部分即为关键选择器（即用来匹配目标元素的那部分，而不是该元素的祖先元素）。在以下例子中将使用该术语讲解。</p>
+<p>例如，在下面规则中：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">a img, </div><div class="line">div &gt; h1, </div><div class="line">h1 + p &#123;</div><div class="line">  …</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>关键选择器为：<code>img</code>、<code>h1</code>、<code>p</code></p>
+<p>CSS规范并没有明确浏览器如何去实现样式系统，仅仅是说明了它们必须这样做。有鉴于此，不同的样式系统引擎可能会拥有完全不同的表现和行为，特别是 Gecko 与 WebKit， 这两个引擎都是开源项目，实现了类似的算法，具有极其相近的优缺点。接下来就让我们一睹样式系统如何工作…</p>
+<h2 id="2-样式系统工作原理"><a href="#2-样式系统工作原理" class="headerlink" title="2.样式系统工作原理"></a>2.样式系统工作原理</h2><h3 id="2-1样式系统如何拆分规则"><a href="#2-1样式系统如何拆分规则" class="headerlink" title="2.1样式系统如何拆分规则"></a>2.1样式系统如何拆分规则</h3><p>编写好的CSS代码，有助提升页面的渲染速度。本质上，引擎需要解析的CSS规则越少，性能越好。样式系统将规则拆分成四个主要类别，如下所示，性能依次降低。</p>
+<ul>
+<li>ID规则</li>
+<li>class规则</li>
+<li>标签规则</li>
+<li>通用规则</li>
+</ul>
+<p>理解这些分类是十分关键的，因为它们是构建规则匹配块的基础。</p>
+<h4 id="ID规则"><a href="#ID规则" class="headerlink" title="ID规则"></a>ID规则</h4><blockquote>
+<p>即包含了那些将 ID 选择器作为关键选择器的规则。</p>
+</blockquote>
+<p>示例</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">#nav &#123;.....&#125;</div><div class="line">a#person-intruc &#123;.....&#125;</div><div class="line">#nav[href=&quot;#&quot;] &#123;.....&#125;</div><div class="line">.....</div></pre></td></tr></table></figure>
+<h4 id="class规则"><a href="#class规则" class="headerlink" title="class规则"></a>class规则</h4><blockquote>
+<p>如果一个规则将一个 class 明确作为它的关键选择器，那么它就属于该类别。</p>
+</blockquote>
+<p>示例</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">.nav &#123;.....&#125;</div><div class="line">a.person-intruc &#123;.....&#125;</div><div class="line">.nav[href=&quot;#&quot;] &#123;.....&#125;</div><div class="line">.....</div></pre></td></tr></table></figure>
+<h4 id="标签规则"><a href="#标签规则" class="headerlink" title="标签规则"></a>标签规则</h4><blockquote>
+<p>如果既没有 class 也没有 ID 来明确作为关键选择器，那么接下来的候选者就是 标签 类别。 如果一条规则将一个标签作为它的关键选择器，那么这条规则就属于该类别。</p>
+</blockquote>
+<p>示例</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">li &#123;.....&#125;</div><div class="line">a &gt; img &#123;.....&#125;</div><div class="line">a[href=&quot;#&quot;]&#123;.....&#125;</div><div class="line">p+ul&#123;.....&#125;</div><div class="line">.....</div></pre></td></tr></table></figure>
+<h4 id="通用规则"><a href="#通用规则" class="headerlink" title="通用规则"></a>通用规则</h4><blockquote>
+<p>不属于上面那些类别的规则都属于这个类别。</p>
+</blockquote>
+<p>示例</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">[hidden=&quot;true&quot;] &#123;…&#125; /* A universal rule */  </div><div class="line">* &#123;…&#125;		/* A universal rule */</div><div class="line">tree &gt; [collapsed=&quot;true&quot;] &#123;…&#125; /* A universal rule */</div></pre></td></tr></table></figure>
+<h3 id="2-2样式系统如何匹配规则"><a href="#2-2样式系统如何匹配规则" class="headerlink" title="2.2样式系统如何匹配规则"></a>2.2样式系统如何匹配规则</h3><blockquote>
+<p>样式系统从关键选择器开始匹配规则，然后左移（查找规则选择器的任何祖先元素）。只要选择器的子树（substree）一直在检查，样式系统就会持续左移，直到和规则匹配，或者是因为不匹配而放弃该条规则。在这其中涉及到规则过滤的基本概念，分类的意义恰恰在此，过滤掉无关的规则（避免浪费时间去匹配）。</p>
+</blockquote>
+<hr>
+<p><strong>现在问题来了，那么什么样式的CSS代码能够更快的匹配，不浪费时间呢？</strong></p>
+<h2 id="3-高效的CSS代码编写"><a href="#3-高效的CSS代码编写" class="headerlink" title="3.高效的CSS代码编写"></a>3.高效的CSS代码编写</h2><h3 id="3-1避免使用通用规则"><a href="#3-1避免使用通用规则" class="headerlink" title="3.1避免使用通用规则"></a>3.1避免使用通用规则</h3><blockquote>
+<p>如<code>*</code>、<code>[hidden=&quot;true&quot;]</code>等通用规则十分浪费匹配时间。不必要时尽量不使用。</p>
+</blockquote>
+<h3 id="3-2避免过度约束"><a href="#3-2避免过度约束" class="headerlink" title="3.2避免过度约束"></a>3.2避免过度约束</h3><p>不要用标签名或 classes 来限定 ID 规则，不要用标签名限定 class 规则</p>
+<blockquote>
+<p><strong>如果规则拥有 ID 选择器作为其关键选择器，则不要为规则增加标签名</strong>。因为 ID 是唯一的，增加标签只会没必要地减缓匹配过程。</p>
+<p>对于ID的在class这里同样适用。标签可能会随着设计改变，所以仅仅选择严格语义化的名字作为类名并运用是很好的选择。</p>
+</blockquote>
+<p><strong>尽量使用最具体的类别</strong>，即能一次搞定就一次搞定。<strong>解析速度变慢的罪魁祸首就是标签类别中有过多的规则。</strong>通过增加 class 到元素上，我们就可以进一步的将这些规则划分到 Class 类别中，这将减少用于匹配标签的时间。</p>
+<h3 id="3-3避免后代选择器"><a href="#3-3避免后代选择器" class="headerlink" title="3.3避免后代选择器"></a>3.3避免后代选择器</h3><p><strong>后代选择器是 CSS 中性能耗用最大的选择器。</strong>它的性能开销相当大——特别是当选择器在标签或通用类别中。通常我们需要的是 <strong>子选择器</strong>。不仅性能低下而且代码很脆弱，html代码和css代码严重耦合，html代码结构发生变化时，CSS也得修改。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">差</div><div class="line">treehead treerow treecell &#123;…&#125;</div><div class="line"></div><div class="line">略好，但还是差（查看下一条指南）</div><div class="line">treehead &gt; treerow &gt; treecell &#123;…&#125;</div></pre></td></tr></table></figure>
+<h3 id="3-4标签分类的规则不要包含子选择器"><a href="#3-4标签分类的规则不要包含子选择器" class="headerlink" title="3.4标签分类的规则不要包含子选择器"></a>3.4标签分类的规则不要包含子选择器</h3><blockquote>
+<p><strong>标签类别的规则中避免使用子选择器</strong>。否则的话，在该元素出现的所有地方，匹配时间都将极大延长（特别是当规则很可能会被匹配）。</p>
+</blockquote>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">差</div><div class="line">treehead &gt; treerow &gt; treecell &#123;…&#125;</div><div class="line">好//采用class规则</div><div class="line">.treecell-header &#123;…&#125;</div></pre></td></tr></table></figure>
+<p>当使用子选择器时要十分谨慎。能免则免。</p>
+<h3 id="3-5了解依赖继承，避免写多余的CSS代码"><a href="#3-5了解依赖继承，避免写多余的CSS代码" class="headerlink" title="3.5了解依赖继承，避免写多余的CSS代码"></a>3.5了解依赖继承，避免写多余的CSS代码</h3><blockquote>
+<p>了解哪些属性能够继承，然后允许它们这样做！</p>
+</blockquote>
+<p>可以继承的属性：</p>
+<h3 id="3-6避免链式（交集）选择符"><a href="#3-6避免链式（交集）选择符" class="headerlink" title="3.6避免链式（交集）选择符"></a>3.6避免链式（交集）选择符</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">// bad</div><div class="line">.menu.left.icon &#123;..&#125;</div><div class="line"></div><div class="line">// good</div><div class="line">.menu-left-icon &#123;..&#125;</div></pre></td></tr></table></figure>
+<h3 id="3-7尽可能精简规则"><a href="#3-7尽可能精简规则" class="headerlink" title="3.7尽可能精简规则"></a>3.7尽可能精简规则</h3><p><strong>使用复合（紧凑）语法</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div></pre></td><td class="code"><pre><div class="line">// bad</div><div class="line">.someclass &#123;</div><div class="line"> padding-top: 20px;</div><div class="line"> padding-bottom: 20px;</div><div class="line"> padding-left: 10px;</div><div class="line"> padding-right: 10px;</div><div class="line"> background: #000;</div><div class="line"> background-image: url(../imgs/carrot.png);</div><div class="line"> background-position: bottom;</div><div class="line"> background-repeat: repeat-x;</div><div class="line">&#125;</div><div class="line"></div><div class="line">// good</div><div class="line">.someclass &#123;</div><div class="line"> padding: 20px 10px 20px 10px;</div><div class="line"> background: #000 url(../imgs/carrot.png) repeat-x bottom;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p><strong>避免不必要的命名空间</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">// bad</div><div class="line">.someclass table tr.otherclass td.somerule &#123;..&#125;</div><div class="line"></div><div class="line">//good</div><div class="line">.someclass .otherclass td.somerule &#123;..&#125;</div></pre></td></tr></table></figure>
+<p><strong>避免不必要的重复</strong></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line">// bad</div><div class="line"></div><div class="line">.someclass &#123;</div><div class="line"> color: red;</div><div class="line"> background: blue;</div><div class="line"> font-size: 15px;</div><div class="line">&#125;</div><div class="line"></div><div class="line">.otherclass &#123;</div><div class="line"> color: red;</div><div class="line"> background: blue;</div><div class="line"> font-size: 15px;</div><div class="line">&#125;</div><div class="line"></div><div class="line">// good</div><div class="line"></div><div class="line">.someclass, .otherclass &#123;</div><div class="line"> color: red;</div><div class="line"> background: blue;</div><div class="line"> font-size: 15px;</div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p><em>在上面规则的基础上，可以进一步合并不同类里的重复的规则</em></p>
+<h3 id="3-8避免-importants"><a href="#3-8避免-importants" class="headerlink" title="3.8避免 !importants"></a>3.8避免 !importants</h3>
+  </section>
+</article>
+
+  <div class="sharing grid">
+  <section class="profile grid-item grid">
+    <img class="avatar" src="http://i1.buimg.com/567571/c68375a45fbac976.png" alt="avatar" />
+    <div class="grid-item">
+      <p class="title"> 李浩男 </p>
+      <p class="subtitle"> 这一年注定在我生命中不朽，即使他还不曾来临，但我依旧触摸得到那种炽热。 </p>
+    <div>
+  </section>
+
+  <section class="share-btns">
+    <!-- <p> share it if you like it~ </p> -->
+    <a
+  class="twitter-share-button"
+  data-size="large"
+  data-via="DrakeLeung"
+  href="https://twitter.com/intent/tweet?text= id="编写高性能的CSS代码"><a"
+>
+  Tweet
+</a>
+
+<script>
+  window.twttr = (function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0],
+    t = window.twttr || {};
+  if (d.getElementById(id)) return t;
+  js = d.createElement(s);
+  js.id = id;
+  js.src = "https://platform.twitter.com/widgets.js";
+  js.async = true;
+  fjs.parentNode.insertBefore(js, fjs);
+
+  t._e = [];
+  t.ready = function(f) {
+    t._e.push(f);
+  };
+
+  return t;
+}(document, "script", "twitter-wjs"));
+</script>
+
+  </section>
+</div>
+
+
+  
+    
+<section class="article-comment">
+  <div id="disqus_thread">
+    <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+  </div>
+</section>
+
+<script>
+  var disqus_shortname = 'lihaonan';
+  
+  var disqus_url = 'http://lihaonan.net/2016/08/20/编写高性能的CSS代码/';
+  
+  (function(){
+    var dsq = document.createElement('script');
+    dsq.type = 'text/javascript';
+    dsq.async = true;
+    dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+    (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+  })();
+</script>
+
+
+  
+</main>
+
+</body>
+</html>
